@@ -431,6 +431,10 @@ const LeftFrameView = Backbone.View.extend({
     this.render();
   },
 
+  toggle: function() {
+    this.$el.toggle();
+  },
+
   hideSearch: function() {
     this.search_image_view.$el.hide();
   },
@@ -888,6 +892,7 @@ const DisplaySearchResultView = Backbone.View.extend({
     }
     const label = div.find('div[name="label"]');
     const image = div.find('img');
+
     const anchor = div.find('a');
     if (!response.success) {
       const errorUrl = '/static/not-found.png';
@@ -985,6 +990,7 @@ const RightFrameView = Backbone.View.extend({
   initialize: function() {
     this.index_csv_view = new IndexCsvView();
     this.show_operation_view = new SearchOperationStatusView();
+    this.model = exp.search_image_model;
     this.canvas_view = exp.canvas_view;
     this.render();
   },
@@ -1017,8 +1023,34 @@ const RightFrameView = Backbone.View.extend({
       }
     });
     this.showIndex();
+    this.$('#upload-image').change(this.renderImage.bind(this));
     return this;
-  }
+  },
+
+  showMessage: function(m) {
+    console.log(m);
+  },
+  renderImage: function(e) {
+    const dom = e.target;
+    if (dom.files && dom.files[0]) {
+      this.model.set('image_blob', dom.files[0]);
+      const mimeType = dom.files[0]['type'];
+      if (mimeType.split('/')[0] !== 'image') {
+        this.showMessage('The selected file is not an image...');
+        return;
+      }
+      let reader = new FileReader();
+      reader.onload = function(e) {
+        IMAGE_UPLOADED = new Image();
+        IMAGE_UPLOADED.src = e.target.result;
+        IMAGE_UPLOADED.onload = function() {
+          this.canvas_view.renderImageToCanvas(IMAGE_UPLOADED);
+        }.bind(this);
+        // this.toggleSubmitButton();
+      }.bind(this);
+      reader.readAsDataURL(dom.files[0]);
+    }
+  },
 });
 
 const left_frame_view = new LeftFrameView();
@@ -1030,6 +1062,9 @@ $('#index-nav').click(function() {
 $('#search-nav').click(function() {
   left_frame_view.showSearch();
   right_frame_view.showSearch();
+});
+$('.navbar-logo').click(function() {
+  left_frame_view.toggle();
 });
 
 $('.div-radio').click(function(e) {
